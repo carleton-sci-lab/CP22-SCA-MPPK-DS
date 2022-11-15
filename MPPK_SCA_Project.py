@@ -1,6 +1,6 @@
-from ast import Index
-from numpy import random
+
 import numpy as np
+
 #Finite Field Index
 p=257
 #Euler's totient of p
@@ -11,7 +11,7 @@ m=2
 n=2
 #degree of multipler polynomials
 lam=1
-#upper limits
+#upper limit
 ell=[1,1]
 # key generation algorithm
 def K(n,lam,ell,p):
@@ -23,69 +23,77 @@ def K(n,lam,ell,p):
    tp = p - 1 # Euler's totient of p
    ## Base Polynomial
    # randomly generate coefficients for beta()
-   c={random.randint(low=0,high=tp-1,size=(n+1,(ell(1)+1)*(ell(2)+1)))}
+   c=np.random.randint(low=0,high=tp-1,size=(n+1,(ell[0]+1)*(ell[1]+1)))
    # c = zeros(n+1, (ell(1)+1)*(ell(2)+1) );
    ## Univariate ploynomials and
    # randomly generate coefficients of f()
-   f={random.randint(0, high=tp-1,size=(1,lam+1))}
+   f=np.random.randint(0, high=tp-1,size=(1,lam+1))
    # randomly generate coefficients of h()
-   h={random.randint(0,high=tp-1, size=(1,lam+1))}
+   h=np.random.randint(0,high=tp-1, size=(1,lam+1))
    ## Product polynomials and
    # init \phi and \psi to zeros
-   phi = np.zeros(n+lam+1, (ell(1)+1)*(ell(2)+1))
-   psi = np.zeros(n+lam+1, (ell(1)+1)*(ell(2)+1))
+   phi = np.zeros([n+lam+1, (ell[0]+1)*(ell[1]+1)])
+   psi = np.zeros([n+lam+1, (ell[0]+1)*(ell[1]+1)])
    i=0
-   for i in n:
+   for i in range(n):
       j=0
-      for j in lam:
-         
-        phi[i+j+1] = phi[i+j+1] + np.multiply(c[i+1],f(j+1))
-        psi[i+j+1] = psi[i+j+1] + np.multiply(c[i+1],h(j+1))
+      for j in range(lam):
+        phi[i+j+1] = phi[i+j+1] + np.multiply(c[i+1],f[j][1])
+        psi[i+j+1] = psi[i+j+1] + np.multiply(c[i+1],h[j][1])
    
    phi = phi % tp
    psi = psi % tp
    ## Polynomials and
    # randomly generate coefficients
-   Ephi={random.randint(low=0, high=(tp-1), size=(1,n+lam-1))}
+   Ephi=np.random.randint(low=0, high=(tp-1), size=(1,n+lam-1))
    # randomly generate coefficients 
-   Epsi={random.randint(0 ,high=tp-1, size=(1,n+lam-1))}
+   Epsi=np.random.randint(0 ,high=tp-1, size=(1,n+lam-1))
    ## , and
-   R0 = (random.randint(1,(tp-2)/2,1))*2
-   Rn = (random.randint(1,(tp-2)/2,1))*2
+   R0 = (np.random.randint(1,(tp-2)/2,1))*2
+   Rn = (np.random.randint(1,(tp-2)/2,1))*2
    ## Noise functions and
-   N0 = R0 * c[1]% tp
-   Nn = Rn * c[n+1]% tp
+   
+   N0 = R0 * c[0]% tp
+   Nn = Rn * c[n] % tp
    ## and
-   Phi = phi[2:n+lam]
-   Psi = psi[2:n+lam]
+   Phi_total = phi[2:n+lam]
+   Psi_total = psi[2:n+lam]
    ## and
-   P = np.zeros(n+lam-1,(ell(1)+1)*(ell(2)+1))
-   Q = np.zeros(n+lam-1,(ell(1)+1)*(ell(2)+1))
-   i=1
-   for i in(n+lam-1):
-      
-    
-      P[i]= R0 * np.multiply((Phi[i,1]-Ephi[i]) , Phi[i])
-      Q[i] = Rn * np.multiply((Psi[i,1]-Epsi[i]),Psi[i])
+   
+   P = np.zeros((n+lam-1,(ell[0]+1)*(ell[1]+1)))
+   Q = np.zeros((n+lam-1,(ell[0]+1)*(ell[1]+1)))
+   i=0
+  
+   for i in range(n+lam-1):
+      #print(Phi_total[i-1])
+      el0=Phi_total[i-1][0]
+      Phi_total[i-1]=np.insert(np.delete(Phi_total[i-1],[0]),0,(el0-Ephi[0][i]))
+      #print(Phi_total)
+      P[i]= R0 @ Phi_total
+      #print(P[i])
+      el1=Psi_total[i-1][0]
+      Psi_total[i-1]=np.insert(np.delete(Psi_total[i-1],[0]),0,(el1-Epsi[0][i]))
+      Q[i] = Rn @ Psi_total
  
    P = P%tp
    Q = Q%tp
    #Private-key and public-key pair
-   s = { f, h, R0, Rn ,Ephi, Epsi }
-   v = { P, Q, N0, Nn }
+   s = [f, h, R0, Rn ,Ephi, Epsi ]
+   v = [ P, Q, N0, Nn ]
    return s,v
 
 ##Signing Algorithm
 def S(s,mu,lam,p):
    #t = digital signature
+   t=np.empty(5,dtype=object) 
    # mu = message
    # s = private key
-   f = s(1).copy
-   h = s(2).copy
-   R0 = s(3).copy
-   Rn = s(4).copy
-   Ephi = s(5).copy 
-   Epsi = s(6).copy
+   f = np.copy(s[0])
+   h = np.copy(s[1])
+   R0 = np.copy(s[2])
+   Rn = np.copy(s[3])
+   Ephi = np.copy(s[4]) 
+   Epsi = np.copy(s[5])
    # m = number of noise variables
    # n = degree of base polynomial
    # lam = degree of univariate polynomials
@@ -93,107 +101,124 @@ def S(s,mu,lam,p):
    # p = finite field index
    tp = p - 1 # Euler's totient of p
    #Random base
-   g = random.randint(2, tp-1,1)
+   g = np.random.randint(2, tp-1,1)
    #Evaluate on
    fm = np.polyval(np.flip(f),mu)
+   #A
    a = R0*fm % tp
-   A = (g**a)%p
+   t[0] = (g**a)%p
    #Evaluate on
    hm = np.polyval(np.flip(h),mu)
+   #B
    b = Rn*hm % tp
-   B = (g**b)%p
-   c = Rn * ( hm*f(1) - fm*h(1) )% tp
-   C = g**c%p
-   d = R0 * ( hm*f(lam+1) - fm*h(lam+1) )%tp
-   D = g**d%p
+   t[1] = (g**b)%p
+   #C
+   c = Rn * (hm*f[0] - fm*h[0] )% tp
+   t[2] = g**c%p
+   #D
+   d = R0 * (hm*f[lam-1] - fm*h[lam-1])%tp
+   t[3] = g**d%p
    #Evaluate on
    flip=np.flip(Ephi)
-   flip.append(0)
-   Ephim = np.polyval(flip,mu)
-   Ephim = Ephim % tp
+   np.insert(flip,flip.size,0)
+   Ephim = np.polyval(flip,mu)%tp
    #Evaluate on
-   flip2=np.flip(Ephi)
-   flip2.append(0)
-   Epsim = np.polyval(flip2,mu)
-   Epsim = Epsim % tp
+   flip2=np.flip(Epsi)
+   np.insert(flip2,flip2.size,0)
+   Epsim = np.polyval(flip2,mu)% tp
+   #E
    e = R0*Rn*(hm*Ephim - fm*Epsim) % tp
-   E = (g**e)%p
-   # digital signature
-   t = {A, B, C, D, E }
+   t[4] = (g**e)%p
    return mu,t
 
 #Signature Verifying Algorithm
-def V(v,mu,t,m,n,lam,ell,p):
+def V(v,mu,t,m,n,lam,ell,pp):
    # v = public key
-   P = v(1).copy 
-   Q = v(2).copy
-   N0 = v(3).copy
-   Nn = v(4).copy
+   P = np.copy(v[0])
+   Q = np.copy(v[1])
+   N0 = np.copy(v[2])
+   Nn =np.copy(v[3])
    # mu = message
    # t = digital signature
-   A = t(1).copy
-   B = t(2).copy
-   C = t(3).copyj
-   D = t(4).copy
-   E = t(5).copy
+   A = np.copy(t[0])
+   B = np.copy(t[1])
+   C = np.copy(t[2])
+   D = np.copy(t[3])
+   E =np.copy(t[4])
    # m = number of noise variables
    # n = degree of base polynomial
    # lam = degree of univariate polynomials
    # ell = upper limits, in base polynomial
    # p = finite field index
-   tp = p - 1 # Euler's totient of p
+   tp = pp - 1 # Euler's totient of p
    #Noise variables
-   r={random.randint(1, high=tp-1,size=(1,m))}
+   r=np.random.randint(1, high=tp-1,size=(1,m))
+   r=r[0]
    # r = [2 2]
    #Evaluate , , and
    barP = 0; barQ = 0 
-   i=1
-   for i in(n+lam-1):
+   i=0
+   for i in range(n+lam-1):
       j_1=0
-      for j_1 in ell(1):
+      for j_1 in range(ell[0]):
          j_2=0
-         for j_2 in ell(2):
-            barP = (barP + P(i,(j_1*2)+j_2+1)*((r[1]**j_1)%tp)*((r[2]**j_2)%tp)*((mu**i)%tp))%tp
-            barQ = (barQ + Q(i,(j_1*2)+j_2+1)*((r[1]**j_1)%tp)*((r[2]**j_2)%tp)*((mu**i)%tp))%tp
+         for j_2 in range(ell[1]):
+            barP = (barP + P[i][(j_1*2)+j_2+1]*((r[0]**j_1)%tp)*((r[1]**j_2)%tp)*((mu**i)%tp))%tp
+            barQ = (barQ + Q[i][(j_1*2)+j_2+1]*((r[0]**j_1)%tp)*((r[1]**j_2)%tp)*((mu**i)%tp))%tp
 
    barP = barP % tp
    barQ = barQ % tp
    barN0 = 0
    barNn = 0
-   j_1=0
-   for j_1 in ell(1):
-      j_2=0
-      for j_2 in ell(2):
-         barN0 = (barN0 + N0((j_1*2)+j_2+1)*((r(1)**j_1)% tp)*((r(2),j_2)%tp))%tp
-         barNn = (barNn + Nn((j_1*2)+j_2+1)*((r(1)**j_1) % tp)*((r(2),j_2)%tp))%tp
+   for j_1 in range(ell[0]):
+      for j_2 in range(ell[1]):
+         barN0 = (barN0 + N0[(j_1*2)+j_2+1]*((r[0]**j_1)% tp)*((r[1]**j_2)%tp))%tp
+         barNn = (barNn + Nn[(j_1*2)+j_2+1]*((r[0]**j_1) % tp)*((r[1]**j_2)%tp))%tp
 
    barN0 = barN0%tp
    barNn = (barNn*(mu**(n+lam)) %tp)%tp 
    # Verification
-   left = (A**barQ) %p
-   right = ((B**barP) % p * (C**barN0) % p *(D**barNn) % p*E ) % p
-   if left==right:
+   left = (A**barQ) %pp
+   right = ((B**barP) % pp * (C**barN0) % pp *(D**barNn) % pp*E ) % pp
+   if np.array_equal(left,right):
       verdict = 'VALID'
    else:
       verdict = 'INVALID'
 
    return mu, verdict
    
-def MPRKDS(m,n,lam,ell,p):
-   #Random message
-   mu = random.randint(0,p-1,1)
+def MPPKDS(m,n,lam,ell,p):
+   #np message
+   mu = np.random.randint(0,p-1,1)
    # disp(mu)
-   [s,v] = K(m,n,lam,ell,p)
+   [s,v] = K(n,lam,ell,p)
    # disp(s)
    # disp(v)
-   [mu,t] = S(s,mu,m,n,lam,ell,p)
-   print(t) # [A B C D E]
+   [mu,t] = S(s,mu,lam,p)
+   print(t[0][1])
+   print("t value:",t) # [A B C D E]
+   print(t[0])
    # A = t(1); B = t(2); C = t(3); D = t(4); E = t(5);
    # if (A*B*C*D*E)==0 | ((A-1)*(B-1)*(C-1)*(D-1)*(E-1))==0
    # fprintf('A, B, C, D and E must not be equal to 0 or 1');
    # return;
    # else
    [mu,verdict] = V(v,mu,t,m,n,lam,ell,p)
-   print(verdict)
+   print("verdict is:",verdict)
    # end
    return verdict
+
+def main():
+    j=0
+    i=1
+    for i in range(100):
+        verdict=MPPKDS(m,n,lam,ell,p)
+        if verdict=='INVALID':
+           print('iteration',i)
+           j=j+1
+        print("\n")
+    print("\n valid passes:",j)
+    print("\n")
+
+if __name__ == '__main__':
+    main()
