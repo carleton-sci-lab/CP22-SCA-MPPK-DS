@@ -1,4 +1,3 @@
-from math import expm1
 import numpy as np
 
 #Finite Field Index
@@ -22,20 +21,22 @@ def K(n,lam,ell,p):
    # p = finite field index
    tp = p - 1 # Euler's totient of p
  
-   #c=[[153, 89, 136, 12],[77, 28, 54, 113],[86, 134, 60, 180]]
-   
-   #f=[117,51]
-   #h=[230,96]
-   
+   #c=[[16,201,31,65],[190,228,75,225],[30,136,83,246]]
+   #f=[11,207]
+   #h=[32,119]
+   #Ephi=[175,227]
+   #Epsi=[217,151]   
+   #R0=[52]
+   #Rn=[176]
    # randomly generate coefficients of f()
    c=np.random.randint(low=0,high=tp-1,size=(n+1,(ell[0]+1)*(ell[1]+1)))
-   print("c value",c)
+   print("c value",list(c))
    f=np.random.randint(0, high=tp-1,size=(1,lam+1))
    f=list(f[0]) 
-   print(f)
+   
    h=np.random.randint(0,high=tp-1, size=(1,lam+1))
    h=list(h[0])
-   print(h)
+   print("f=",f,"h=",h)
    ## Product polynomials and init \phi and \psi to zeros
    phi = np.zeros([n+lam+1, (ell[0]+1)*(ell[1]+1)])
    psi = np.zeros([n+lam+1, (ell[0]+1)*(ell[1]+1)])
@@ -54,18 +55,15 @@ def K(n,lam,ell,p):
    Epsi=Epsi[0]
    R0 = (np.random.randint(1,(tp-2)/2,1))*2
    Rn = (np.random.randint(1,(tp-2)/2,1))*2
-   print(Ephi)
-   #Ephi=[127,248]
-   #Epsi=[237,4]   
-   #R0=52
-   #Rn=144 
+   print("Ephi=",Ephi,"Epsi=",Epsi,"R0=",R0,"Rn=",Rn)
+   
    
    ## Noise functions and
    N0=[]
    Nn=[]
   
-   for k in c[0]:N0.append((R0*k)%tp)
-   for m in c[n]:Nn.append((Rn*m)%tp)
+   for k in c[0]:N0.append((R0[0]*k)%tp)
+   for m in c[n]:Nn.append((Rn[0]*m)%tp)
    
    P = [[0 for col in range((ell[0]+1)*(ell[1]+1))] for row in range((n+lam-1))]
    Q = [[0 for col in range((ell[0]+1)*(ell[1]+1))] for row in range((n+lam-1))]
@@ -86,13 +84,13 @@ def K(n,lam,ell,p):
 def S(s,mu,lam,p):
    #t = digital signature
    t=np.zeros(5) 
-   print('t',t)
+   
    # mu = message
    # s = private key
    f = np.copy(s[0])
    h = np.copy(s[1])
-   R0 = int(np.copy(s[2]))
-   Rn = int(np.copy(s[3]))
+   R0 = np.copy(s[2])
+   Rn = np.copy(s[3])
    Ephi = np.copy(s[4]) 
    Epsi = np.copy(s[5])
    # m = number of noise variables
@@ -103,25 +101,28 @@ def S(s,mu,lam,p):
    tp = p - 1 # Euler's totient of p
    #Random base
    g = np.random.randint(2, tp-1,1)
-   print("g",g)
+   #g=[94]
    #Evaluate on
    fm = np.polyval(np.flip(f),mu)
    
    #A
    a = R0*fm % tp
-   print("inside data ",a," ",g," ",fm )
+   print("inside data a=",a," g=",g," fm=",fm )
    t[0] = pow(int(g[0]),int(a[0]),p)
    #Evaluate on
    hm = int(np.polyval(np.flip(h),mu))
    #B
    b= (Rn*hm)%tp
-   t[1] = pow(int(g[0]),b,p)
-   print(" t1 ",t[1])
+   t[1] = pow(int(g[0]),int(b[0]),p)
+  
    #C
-   c = Rn * (hm*f[0] - fm*h[0] )% tp
-   t[2] = pow(int(g[0]),int (c[0]),p)
+   c=[fm.size]
+   for i in range(fm.size):
+        c[i]= Rn[i] * (hm*f[0] - fm*h[0] )% tp
+   t[2] = pow(int(g[0]),int(c[0]),p)
    #D
-   d = R0 * (hm*f[lam-1] - fm*h[lam-1])%tp
+   d =  R0 * (hm*f[lam] - fm*h[lam])%tp
+
    t[3] = pow(int(g[0]),int(d[0]),p)
    #Evaluate on
    flip=np.flip(Ephi)
@@ -141,6 +142,7 @@ def S(s,mu,lam,p):
    e = (R0*Rn*(hm*Ephim - fm*Epsim)) % tp
   
    t[4] = pow(int(g[0]),int(e[0]),p)
+   print('a=',a,'b=',b,'c=',c,'d=',d,'e=',e)
    return mu,t
 
 #Signature Verifying Algorithm
@@ -166,15 +168,17 @@ def V(v,mu,t,m,n,lam,ell,pp):
    #Noise variables
    r=np.random.randint(1, high=tp-1,size=(1,m))
    r=r[0]
-   # r = [2 2]
+   #r=[82,11]
+   print("r=",r)
+   
    #Evaluate , , and
    barP = 0; barQ = 0 
    i=1
    for i in range(n+lam-1):      
       for j_1 in range(ell[0]):         
          for j_2 in range(ell[1]):
-            barP = (barP + P[i][(j_1*2)+j_2+1]*(int(r[0])*j_1%tp)*(int(r[1])*j_2%tp)*(int(mu)*i%tp))%tp
-            barQ = (barQ + Q[i][(j_1*2)+j_2+1]*(int(r[0])*j_1%tp)*(int(r[1])*j_2%tp)*(int(mu)*i%tp))%tp
+            barP = (barP + P[i][(j_1*2)+j_2+1]*((r[0])*j_1%tp)*((r[1])*j_2%tp)*((mu)*i%tp))%tp
+            barQ = (barQ + Q[i][(j_1*2)+j_2+1]*((r[0])*j_1%tp)*((r[1])*j_2%tp)*((mu)*i%tp))%tp
 
    barP = barP % tp
    barQ = barQ % tp
@@ -199,7 +203,9 @@ def V(v,mu,t,m,n,lam,ell,pp):
 def MPPKDS(m,n,lam,ell,p):
    #np message
    mu = np.random.randint(0,p-1,1)
+   #mu=251
    print("mu ",mu)
+   # disp(mu)
    [s,v] = K(n,lam,ell,p)
    # disp(s)
    # disp(v)
@@ -227,7 +233,7 @@ def main():
            j=j+1
         print("\n")
         k=k+1
-    print("\n invalid passes:",k-j,"/",k)
+    print("Valid passes:",k-j,"/",k)
     print("\n")
 
 def test_K():
