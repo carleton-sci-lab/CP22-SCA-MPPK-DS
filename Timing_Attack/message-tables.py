@@ -197,12 +197,13 @@ def S(s, mu, lam, p):
             fm = fm * mu
             fm_end = time.perf_counter() # time end
             fm_total_time += fm_end - fm_start
-            fm = fm + pv
-            print("fm is here!!!", fm)
+            #fm = fm + pv
+            #print("fm is here!!!", fm)
             if iteration == 2:
+                print("fm: ", fm)
                 cursor.execute("""INSERT INTO fm_message_table (mu, execution_time) VALUES (?, ?)""", (mu, fm_total_time))
                 conn.commit() # save changes to the database
-
+            fm = fm + pv
     # A
     a = R0*fm % tp
 
@@ -225,7 +226,7 @@ def S(s, mu, lam, p):
     for mu in range(0, 10000):
         hm = 0
         h_value = NX.asarray(np.flip(h))
-        iteration = 0 
+        iteration = 0
         for pv in h_value:
             iteration += 1
             print("pv = ", pv, "at iteration ", iteration)
@@ -234,12 +235,13 @@ def S(s, mu, lam, p):
             hm = hm * mu
             hm_end = time.perf_counter() # time end
             hm_total_time += hm_end - hm_start
+            print(hm)
             hm = hm + pv
-            print("hm test here!!!", hm)
             if iteration == 2:
+                print(hm)
                 cursor.execute("""INSERT INTO hm_message_table (mu, execution_time) VALUES (?, ?)""", (mu, hm_total_time))
                 conn.commit() # save changes to the database
-
+            #hm = hm + pv
     # B
     b = (Rn*hm) % tp
 

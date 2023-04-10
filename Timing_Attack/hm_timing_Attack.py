@@ -8,35 +8,35 @@ conn = sqlite3.connect('execution_time.db')
 cursor = conn.cursor()
 
 # Create table for the execution time
-create_table = "CREATE TABLE IF NOT EXISTS hm_execution_time (mu INTEGER, {})"
-table_columns = ', '.join(["hm{} REAL".format(i) for i in range(0, 1000)])
+create_table = "CREATE TABLE IF NOT EXISTS hm_32template (mu INTEGER, {} )"
+table_columns = ', '.join(["hm{}_{} REAL".format(h0, h1) for h0 in range (32, 33) for h1 in range(0, 200)])
 cursor.execute(create_table.format(table_columns))
 
-h=[32,119]
-# Loop through the values of mu
-for mu in range(0, 1000):
-    print("mu = ", mu)
-    mu = NX.asanyarray(mu)
-    h_value = NX.asarray(np.flip(h))
-    iteration = 0
-    values = [int(mu)]
-    #hm_times = [] #list to store execution times for each hm value
-    # Loop through the values of hm
-    for hm in range(0, 1000):
-        hm = NX.asanyarray(hm)
-        hm_start = time.perf_counter() # time start
-        h_value = hm * mu
-        hm_end = time.perf_counter() # time end
-        hm_total_time = hm_end - hm_start
-        values.append(hm_total_time)
-        if len(values) == 1001:
-            cursor.execute("INSERT INTO hm_execution_time VALUES ({})".format(', '.join(['?' for i in range(len(values))])), values)
+#h=[32,119]
 
-    # Clear the values for the next iteration
-    #print ("value of values before clear = ", values)
-    #values = [mu]
-    #print ("value of values after clear = ", values)
+for mu in range (0,1000):
+    values = [int(mu)]
+    for h0 in range (32,33):
+        for h1 in range (0,200):
+            h_value = NX.asarray(np.flip([h0,h1]))
+            if isinstance(mu, np.poly1d):
+                hm = 0
+            else:
+                mu = NX.asanyarray(mu)
+                hm = NX.zeros_like(mu)
+            hm_start = time.perf_counter() # time start
+            for pv in h_value:
+                hm = hm * mu + pv
+            hm_end = time.perf_counter() # time end
+            hm_total_time = hm_end - hm_start
+            values.append(hm_total_time)
+            print(f'for mu{mu} and key {h0}-{h1} time = {hm_total_time}')
+            if len(values) == 201:
+                cursor.execute("INSERT INTO hm_32template VALUES ({})".format(', '.join(['?' for i in range(len(values))])), values)
+            hm_total_time = 0
 
 # Commit the changes and close the connection
 conn.commit()
 conn.close()
+
+
